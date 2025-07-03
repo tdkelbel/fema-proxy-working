@@ -16,19 +16,23 @@ app.get("/fema-wms", async (req, res) => {
     const params = {
       f: "image",
       format: "png",
-      transparent: true,
-      layers: "show:28", // FEMA flood hazard layer
+      transparent: "true",
+      layers: "show:28",
       bbox: bbox,
       bboxSR: "4326",
       imageSR: "4326",
       size: size,
     };
 
-    console.log("➡️ Requesting FEMA export with:", params);
+    const headers = {
+      "User-Agent": "Mozilla/5.0",
+      Referer: "https://hazards.fema.gov",
+    };
 
     const response = await axios.get(femaUrl, {
       params,
       responseType: "arraybuffer",
+      headers,
     });
 
     res.set("Content-Type", "image/png");
@@ -36,8 +40,8 @@ app.get("/fema-wms", async (req, res) => {
   } catch (error) {
     console.error("❌ FEMA request error:", error.message);
     if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Body:", error.response.data?.toString?.() || "n/a");
+      console.error("➡️ Response status:", error.response.status);
+      console.error("➡️ Response body:", error.response.data?.toString?.());
     }
     res.status(500).send("Error proxying FEMA request");
   }
@@ -47,4 +51,5 @@ const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Proxy running on port ${port}`);
 });
+
 
