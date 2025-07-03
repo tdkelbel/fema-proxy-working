@@ -1,41 +1,50 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+const express = require("express");
+const cors = require("cors");
+const axios = require("axios");
 
 const app = express();
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
-
-app.get('/fema-wms', async (req, res) => {
+app.get("/fema-wms", async (req, res) => {
   try {
-    const url = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export`;
+    const femaUrl =
+      "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export";
 
-    console.log('➡️ Forwarding request to FEMA export endpoint with params:', req.query);
+    const bbox = req.query.bbox || "-79.795,36.071,-79.791,36.075";
+    const size = req.query.size || "800,800";
 
-    const response = await axios.get(url, {
-      params: {
-        f: 'image',
-        format: 'png',
-        transparent: true,
-        layers: 'show:28', // Flood hazard zones layer
-        ...req.query,
-      },
-      responseType: 'arraybuffer',
+    const params = {
+      f: "image",
+      format: "png",
+      transparent: true,
+      layers: "show:28", // FEMA flood hazard layer
+      bbox: bbox,
+      bboxSR: "4326",
+      imageSR: "4326",
+      size: size,
+    };
+
+    console.log("➡️ Requesting FEMA export with:", params);
+
+    const response = await axios.get(femaUrl, {
+      params,
+      responseType: "arraybuffer",
     });
 
-    res.set('Content-Type', 'image/png');
+    res.set("Content-Type", "image/png");
     res.send(response.data);
   } catch (error) {
-    console.error('❌ FEMA proxy error:', error.message);
+    console.error("❌ FEMA request error:", error.message);
     if (error.response) {
-      console.error('Status:', error.response.status);
-      console.error('Data:', error.response.data.toString());
+      console.error("Status:", error.response.status);
+      console.error("Body:", error.response.data?.toString?.() || "n/a");
     }
-    res.status(500).send('Error proxying FEMA export request');
+    res.status(500).send("Error proxying FEMA request");
   }
 });
 
+const port = process.env.PORT || 10000;
+app.listen(port, () => {
+  console.log(`Proxy running on port ${port}`);
+});
 
-
-app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
