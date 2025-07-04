@@ -1,28 +1,34 @@
 const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 10000;
+
+// Enable CORS
 app.use(cors());
 
-app.get('/fema-wms', async (req, res) => {
+// Proxy endpoint for FEMA WMS
+app.get('/public/NFHLWMS/MapServer/export', async (req, res) => {
   try {
-    const target = 'https://hazards.fema.gov/arcgis/rest/services/public/NFHLWMS/MapServer/WMSServer';
-    const response = await axios.get(target, {
-      params: req.query,
+    const params = req.query;
+    const targetUrl = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/export';
+
+    const response = await axios.get(targetUrl, {
+      params,
       responseType: 'arraybuffer',
     });
-    res.set('Content-Type', response.headers['content-type']);
+
+    res.set('Content-Type', 'image/png');
     res.send(response.data);
-  } catch (err) {
-    console.error('❌ FEMA proxy error:', err.message);
-    res.status(500).send('Error proxying FEMA WMS');
+  } catch (error) {
+    console.error('FEMA WMS proxy error:', error.message);
+    res.status(502).send('Error proxying FEMA request');
   }
 });
 
-const port = process.env.PORT || 10000;
-app.listen(port, () => {
-  console.log(`✅ Proxy running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`Proxy running on port ${PORT}`);
 });
 
 
